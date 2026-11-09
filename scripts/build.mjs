@@ -18,7 +18,8 @@ export function validateWorkspace(value) {
   }
   return value;
 }
-export const escapeHtml = value => String(value).replace(/[&<>"']/g, char => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[char]));
+const escapeMap = {'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'};
+export const escapeHtml = value => String(value).replace(/[&<>"']/g, char => escapeMap[char]);
 const href = (workspace, action) => `https://freetwai.com/#guilds/${workspace.guild_key}/${action}`;
 export function renderWorkspace(workspace) {
   validateWorkspace(workspace);
@@ -40,7 +41,8 @@ export async function build(root = process.cwd(), sourceSha) {
   if (!/^[a-f0-9]{40}$/.test(sha)) throw new Error('Expected an exact source SHA');
   const output = resolve(root, 'dist');
   await mkdir(output, {recursive: true});
-  const serialized = JSON.stringify(workspace).replaceAll('<', '\\u003c').replaceAll('\u2028', '\\u2028').replaceAll('\u2029', '\\u2029');
+  const serializedMap = {'<': '\\u003c', '\u2028': '\\u2028', '\u2029': '\\u2029'};
+  const serialized = JSON.stringify(workspace).replace(/[<\u2028\u2029]/g, char => serializedMap[char]);
   await writeFile(resolve(output, 'index.html'), renderWorkspace(workspace));
   await writeFile(resolve(output, 'site.js'), `const workspace = ${serialized};\nconst sourceSha = ${JSON.stringify(sha)};\n` + await readFile(resolve(root, 'src/site.js'), 'utf8'));
   await copyFile(resolve(root, 'src/style.css'), resolve(output, 'style.css'));
